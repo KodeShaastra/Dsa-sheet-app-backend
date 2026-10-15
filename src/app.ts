@@ -7,6 +7,10 @@ import { isTest } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
+import { scheduledProblemsRouter } from './modules/scheduled-problems/scheduled-problems.routes.js';
+import { sheetRouter } from './modules/sheet/sheet.routes.js';
+import { solvedProblemsRouter } from './modules/solved-problems/solved-problems.routes.js';
+import { AppError } from './utils/AppError.js';
 
 interface AppOptions {
   /** Turn rate limits on or off. Off by default in tests. */
@@ -29,17 +33,23 @@ export function createApp({ rateLimit = !isTest }: AppOptions = {}) {
         limit: 300,
         standardHeaders: 'draft-8',
         legacyHeaders: false,
+        handler: (_req, _res, next) => {
+          next(new AppError(429, 'RATE_LIMITED', 'Too many requests, please slow down'));
+        },
       }),
     );
   }
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
 
-  app.get('/health', (_req, res) => {
+  app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
 
   app.use('/api/auth', createAuthRouter({ rateLimit }));
+  app.use('/api/sheet', sheetRouter);
+  app.use('/api/solved-problems', solvedProblemsRouter);
+  app.use('/api/scheduled-problems', scheduledProblemsRouter);
 
   app.use(notFound);
   app.use(errorHandler);

@@ -19,12 +19,12 @@ enum Difficulty {
   @@map("difficulty")
 }
 
-enum PlanStatus {
-  PLANNED
+enum ScheduledProblemStatus {
+  PENDING // a PENDING item with a past date is "missed"
   DONE
   SKIPPED
 
-  @@map("plan_status")
+  @@map("scheduled_problem_status")
 }
 
 model User {
@@ -35,8 +35,8 @@ model User {
   passwordHash String   @map("password_hash") @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  progress   UserProgress[]
-  studyPlans StudyPlan[]
+  solvedProblems    SolvedProblem[]
+  scheduledProblems ScheduledProblem[]
 
   @@map("users")
 }
@@ -76,9 +76,9 @@ model Problem {
   articleUrl  String?    @map("article_url") @db.VarChar(500)
   position    Int
 
-  topic      Topic          @relation(fields: [topicId], references: [id])
-  progress   UserProgress[]
-  studyPlans StudyPlan[]
+  topic             Topic              @relation(fields: [topicId], references: [id])
+  solvedProblems    SolvedProblem[]
+  scheduledProblems ScheduledProblem[]
 
   @@unique([topicId, title]) // lets the seed upsert by title
   @@index([topicId, position])
@@ -86,34 +86,36 @@ model Problem {
   @@map("problems")
 }
 
-model UserProgress {
-  userId      String   @map("user_id") @db.Uuid
-  problemId   Int      @map("problem_id")
-  completedAt DateTime @default(now()) @map("completed_at")
+/// "I solved this problem."
+model SolvedProblem {
+  userId    String   @map("user_id") @db.Uuid
+  problemId Int      @map("problem_id")
+  solvedAt  DateTime @default(now()) @map("solved_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@id([userId, problemId])
   @@index([problemId])
-  @@map("user_progress")
+  @@map("solved_problems")
 }
 
-model StudyPlan {
-  id          String     @id @default(uuid()) @db.Uuid
-  userId      String     @map("user_id") @db.Uuid
-  problemId   Int        @map("problem_id")
+/// "I'll solve this problem on that date."
+model ScheduledProblem {
+  id           String                 @id @default(uuid()) @db.Uuid
+  userId       String                 @map("user_id") @db.Uuid
+  problemId    Int                    @map("problem_id")
   /// Date only: no time, no timezone.
-  plannedDate DateTime   @map("planned_date") @db.Date
-  status      PlanStatus @default(PLANNED)
-  note        String?    @db.VarChar(500)
-  createdAt   DateTime   @default(now()) @map("created_at")
+  scheduledFor DateTime               @map("scheduled_for") @db.Date
+  status       ScheduledProblemStatus @default(PENDING)
+  note         String?                @db.VarChar(500)
+  createdAt    DateTime               @default(now()) @map("created_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, problemId, plannedDate])
-  @@index([userId, plannedDate])
+  @@unique([userId, problemId, scheduledFor])
+  @@index([userId, scheduledFor])
   @@index([problemId])
-  @@map("study_plans")
+  @@map("scheduled_problems")
 }
