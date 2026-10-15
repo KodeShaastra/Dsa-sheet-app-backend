@@ -14,7 +14,7 @@ const publicUser = { id: true, email: true, name: true, createdAt: true } as con
 
 export async function signup(input: SignupInput) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
-  if (existing) throw new AppError(409, 'EMAIL_TAKEN', 'Email is already registered');
+  if (existing) throw new AppError(409, 'CONFLICT', 'Email is already registered');
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_COST);
   return prisma.user.create({
@@ -27,7 +27,7 @@ export async function login(input: LoginInput) {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
   const ok = await bcrypt.compare(input.password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) {
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
+    throw new AppError(401, 'UNAUTHORIZED', 'Invalid email or password');
   }
 
   return { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt };
