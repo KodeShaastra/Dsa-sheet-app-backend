@@ -3,7 +3,7 @@ import type { Difficulty } from '../../generated/prisma/enums.js';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../utils/AppError.js';
 import { toApiId } from '../../utils/ids.js';
-import { getSheet } from '../sheet/sheet.service.js';
+import { getSheet, type Sheet } from '../sheet/sheet.service.js';
 
 interface Count {
   total: number;
@@ -18,6 +18,38 @@ export interface SolvedProblemsSummary {
   };
 }
 
+type Stats = SolvedProblemsSummary['stats'];
+
+const emptyCount = (): Count => ({ total: 0, solved: 0 });
+
+/** Counts totals and solved problems from the cached sheet: overall, per difficulty, per chapter. */
+function buildStats(sheet: Sheet, solved: Set<string>): Stats {
+  const stats: Stats = {
+    ...emptyCount(),
+    byDifficulty: { EASY: emptyCount(), MEDIUM: emptyCount(), HARD: emptyCount() },
+    byChapter: [],
+  };
+
+  for (const chapter of sheet.chapters) {
+    const chapterCount = {
+      id: chapter.id,
+      title: chapter.title,
+      slug: chapter.slug,
+      ...emptyCount(),
+    };
+    for (const problem of chapter.topics.flatMap((t) => t.problems)) {
+      const isSolved = solved.has(problem.id) ? 1 : 0;
+      for (const count of [stats, stats.byDifficulty[problem.difficulty], chapterCount]) {
+        count.total += 1;
+        count.solved += isSolved;
+      }
+    }
+    stats.byChapter.push(chapterCount);
+  }
+
+  return stats;
+}
+
 export async function getSolvedProblems(userId: string): Promise<SolvedProblemsSummary> {
   const [sheet, rows] = await Promise.all([
     getSheet(),
@@ -29,41 +61,7 @@ export async function getSolvedProblems(userId: string): Promise<SolvedProblemsS
   ]);
 
   const solvedProblemIds = rows.map((r) => toApiId(r.problemId));
-  const solved = new Set(solvedProblemIds);
-
-  // Totals come from the cached sheet, so this needs only one small query.
-  const stats: SolvedProblemsSummary['stats'] = {
-    total: 0,
-    solved: 0,
-    byDifficulty: {
-      EASY: { total: 0, solved: 0 },
-      MEDIUM: { total: 0, solved: 0 },
-      HARD: { total: 0, solved: 0 },
-    },
-    byChapter: [],
-  };
-
-  for (const chapter of sheet.chapters) {
-    const chapterCount = {
-      id: chapter.id,
-      title: chapter.title,
-      slug: chapter.slug,
-      total: 0,
-      solved: 0,
-    };
-    for (const topic of chapter.topics) {
-      for (const problem of topic.problems) {
-        const isSolved = solved.has(problem.id) ? 1 : 0;
-        for (const count of [stats, stats.byDifficulty[problem.difficulty], chapterCount]) {
-          count.total += 1;
-          count.solved += isSolved;
-        }
-      }
-    }
-    stats.byChapter.push(chapterCount);
-  }
-
-  return { solvedProblemIds, stats };
+  return { solvedProblemIds, stats: buildStats(sheet, new Set(solvedProblemIds)) };
 }
 
 /** Tick a problem. Doing it twice is fine; the first solvedAt is kept. */

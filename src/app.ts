@@ -17,35 +17,36 @@ interface AppOptions {
   rateLimit?: boolean;
 }
 
+/** 300 requests per minute per IP, across the whole API. */
+function globalRateLimit() {
+  return rateLimiter({
+    windowMs: 60 * 1000,
+    limit: 300,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, _res, next) => {
+      next(new AppError(429, 'RATE_LIMITED', 'Too many requests, please slow down'));
+    },
+  });
+}
+
 /** Builds the Express app without starting it, so tests can use it directly. */
 export function createApp({ rateLimit = !isTest }: AppOptions = {}) {
   const app = express();
 
   app.disable('x-powered-by');
+  // We run behind Nginx/CloudFront: needed for real client IPs (rate limits) and secure cookies.
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  app.use(pinoHttp({ logger }));
-  if (rateLimit) {
-    app.use(
-      rateLimiter({
-        windowMs: 60 * 1000,
-        limit: 300,
-        standardHeaders: 'draft-8',
-        legacyHeaders: false,
-        handler: (_req, _res, next) => {
-          next(new AppError(429, 'RATE_LIMITED', 'Too many requests, please slow down'));
-        },
-      }),
-    );
-  }
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
+  app.use(pinoHttp({ logger }));
+  if (rateLimit) app.use(globalRateLimit());
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
-
   app.use('/api/auth', createAuthRouter({ rateLimit }));
   app.use('/api/sheet', sheetRouter);
   app.use('/api/solved-problems', solvedProblemsRouter);

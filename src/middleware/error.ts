@@ -1,59 +1,49 @@
-import type { ErrorRequestHandler, RequestHandler, Response } from 'express';
+import type { ErrorRequestHandler, RequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '../generated/prisma/client.js';
 import { logger } from '../lib/logger.js';
-import { AppError, zodDetails, type ErrorCode, type ErrorDetail } from '../utils/AppError.js';
+import { AppError, zodDetails } from '../utils/AppError.js';
 
-function sendError(
-  res: Response,
-  status: number,
-  code: ErrorCode,
-  message: string,
-  details: ErrorDetail[] = [],
-) {
-  res.status(status).json({ error: { code, message, details } });
-}
-
-export const notFound: RequestHandler = (req, res) => {
-  sendError(res, 404, 'NOT_FOUND', `Route not found: ${req.method} ${req.path}`);
+export const notFound: RequestHandler = (req) => {
+  throw new AppError(404, 'NOT_FOUND', `Route not found: ${req.method} ${req.path}`);
 };
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-  if (err instanceof AppError) {
-    sendError(res, err.status, err.code, err.message, err.details);
-    return;
-  }
-
-  // In case a service calls schema.parse() directly.
-  if (err instanceof ZodError) {
-    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request', zodDetails(err));
-    return;
-  }
-
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === 'P2002') {
-      sendError(res, 409, 'CONFLICT', 'Already exists');
-      return;
-    }
-    if (err.code === 'P2025') {
-      sendError(res, 404, 'NOT_FOUND', 'Not found');
-      return;
-    }
-  }
-
-  // Bad JSON, body too large, and similar errors from express.json()
-  if (
+/** Errors from express.json(): bad JSON, body too large, wrong encoding. All are 4xx. */
+function isBodyParserError(err: unknown): boolean {
+  return (
     typeof err === 'object' &&
     err !== null &&
     'status' in err &&
     typeof err.status === 'number' &&
     err.status >= 400 &&
     err.status < 500
-  ) {
-    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body');
-    return;
+  );
+}
+
+/** Turns any thrown value into an AppError. Unknown errors become 500 INTERNAL. */
+function toAppError(err: unknown): AppError {
+  if (err instanceof AppError) return err;
+
+  // In case a service calls schema.parse() directly.
+  if (err instanceof ZodError) {
+    return new AppError(400, 'VALIDATION_ERROR', 'Invalid request', zodDetails(err));
+  }
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') return new AppError(409, 'CONFLICT', 'Already exists');
+    if (err.code === 'P2025') return new AppError(404, 'NOT_FOUND', 'Not found');
+  }
+
+  if (isBodyParserError(err)) {
+    return new AppError(400, 'VALIDATION_ERROR', 'Invalid request body');
   }
 
   logger.error({ err }, 'Unhandled error');
-  sendError(res, 500, 'INTERNAL', 'Internal server error');
+  return new AppError(500, 'INTERNAL', 'Internal server error');
+}
+
+/** The only place that writes error responses. */
+export const errorHandler: ErrorRequestHandler = (err: unknown, _req, res, _next) => {
+  const { status, code, message, details } = toAppError(err);
+  res.status(status).json({ error: { code, message, details } });
 };

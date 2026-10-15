@@ -54,14 +54,14 @@ export async function listScheduledProblems(
   return rows.map(toApiScheduledProblem);
 }
 
-/** Schedules each problem for the date. Problems already scheduled for that date are skipped. */
-export async function createScheduledProblems(userId: string, input: CreateScheduledProblemsInput) {
+/** Throws 404 listing every id in `problemIds` that has no problem. */
+async function ensureProblemsExist(problemIds: number[]): Promise<void> {
   const found = await prisma.problem.findMany({
-    where: { id: { in: input.problemIds } },
+    where: { id: { in: problemIds } },
     select: { id: true },
   });
   const foundIds = new Set(found.map((p) => p.id));
-  const missing = input.problemIds.filter((id) => !foundIds.has(id));
+  const missing = problemIds.filter((id) => !foundIds.has(id));
   if (missing.length > 0) {
     throw new AppError(
       404,
@@ -70,11 +70,16 @@ export async function createScheduledProblems(userId: string, input: CreateSched
       missing.map((id) => ({ path: 'problemIds', message: `Problem ${id} not found` })),
     );
   }
+}
 
+/** Inserts one row per problem, skipping ones already scheduled for that date. */
+async function insertSkippingDuplicates(
+  userId: string,
+  input: CreateScheduledProblemsInput,
+): Promise<ScheduledProblemRow[]> {
   const scheduledFor = toDbDate(input.scheduledFor);
-  let created: ScheduledProblemRow[];
   try {
-    created = await prisma.scheduledProblem.createManyAndReturn({
+    return await prisma.scheduledProblem.createManyAndReturn({
       data: input.problemIds.map((problemId) => ({
         userId,
         problemId,
@@ -85,15 +90,22 @@ export async function createScheduledProblems(userId: string, input: CreateSched
       select: scheduledProblemSelect,
     });
   } catch (err) {
-    // A problem was deleted between the check above and the insert.
+    // A problem was deleted between the existence check and the insert.
     if (isPrismaError(err, 'P2003')) throw new AppError(404, 'NOT_FOUND', 'Problem not found');
     throw err;
   }
+}
 
-  // Return them in the order the client sent the ids.
-  const order = new Map(input.problemIds.map((id, i) => [id, i]));
-  created.sort((a, b) => order.get(a.problem.id)! - order.get(b.problem.id)!);
-  return created.map(toApiScheduledProblem);
+function sortByIdOrder(rows: ScheduledProblemRow[], problemIds: number[]): ScheduledProblemRow[] {
+  const order = new Map(problemIds.map((id, i) => [id, i]));
+  return rows.toSorted((a, b) => (order.get(a.problem.id) ?? 0) - (order.get(b.problem.id) ?? 0));
+}
+
+/** Schedules each problem for the date. Problems already scheduled for that date are skipped. */
+export async function createScheduledProblems(userId: string, input: CreateScheduledProblemsInput) {
+  await ensureProblemsExist(input.problemIds);
+  const created = await insertSkippingDuplicates(userId, input);
+  return sortByIdOrder(created, input.problemIds).map(toApiScheduledProblem);
 }
 
 /** Setting status to DONE also marks the problem solved, in the same transaction. */
