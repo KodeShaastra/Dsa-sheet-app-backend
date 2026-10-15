@@ -1,0 +1,40 @@
+import type { Request, Response } from 'express';
+import type {
+  CreateScheduledProblemsInput,
+  ListScheduledProblemsQuery,
+  ScheduledProblemIdParams,
+  UpdateScheduledProblemInput,
+} from './scheduled-problems.schema.js';
+import * as scheduledProblemsService from './scheduled-problems.service.js';
+
+export async function listScheduledProblems(req: Request, res: Response) {
+  const scheduledProblems = await scheduledProblemsService.listScheduledProblems(
+    req.user!.id,
+    req.query as unknown as ListScheduledProblemsQuery,
+  );
+  res.json({ scheduledProblems });
+}
+
+export async function createScheduledProblems(req: Request, res: Response) {
+  const scheduledProblems = await scheduledProblemsService.createScheduledProblems(
+    req.user!.id,
+    req.body as CreateScheduledProblemsInput,
+  );
+  res.status(201).json({ scheduledProblems });
+}
+
+export async function updateScheduledProblem(req: Request, res: Response) {
+  const { scheduledProblemId } = req.params as unknown as ScheduledProblemIdParams;
+  const scheduledProblem = await scheduledProblemsService.updateScheduledProblem(
+    req.user!.id,
+    scheduledProblemId,
+    req.body as UpdateScheduledProblemInput,
+  );
+  res.json({ scheduledProblem });
+}
+
+export async function deleteScheduledProblem(req: Request, res: Response) {
+  const { scheduledProblemId } = req.params as unknown as ScheduledProblemIdParams;
+  await scheduledProblemsService.deleteScheduledProblem(req.user!.id, scheduledProblemId);
+  res.status(204).end();
+}
