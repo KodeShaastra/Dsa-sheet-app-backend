@@ -19,12 +19,12 @@ enum Difficulty {
   @@map("difficulty")
 }
 
-enum ScheduledProblemStatus {
-  PENDING // a PENDING item with a past date is "missed"
+enum ScheduleStatus {
+  PENDING // "missed" = PENDING with a past date (computed, not stored)
   DONE
   SKIPPED
 
-  @@map("scheduled_problem_status")
+  @@map("schedule_status")
 }
 
 model User {
@@ -37,15 +37,16 @@ model User {
 
   solvedProblems    SolvedProblem[]
   scheduledProblems ScheduledProblem[]
+  refreshTokens     RefreshToken[]
 
   @@map("users")
 }
 
 model Chapter {
-  id       Int    @id @default(autoincrement())
-  title    String @db.VarChar(100)
-  slug     String @unique @db.VarChar(100)
-  position Int
+  id           Int    @id @default(autoincrement())
+  title        String @db.VarChar(100)
+  slug         String @unique @db.VarChar(100)
+  displayOrder Int    @map("display_order")
 
   topics Topic[]
 
@@ -53,35 +54,35 @@ model Chapter {
 }
 
 model Topic {
-  id        Int    @id @default(autoincrement())
-  chapterId Int    @map("chapter_id")
-  title     String @db.VarChar(100)
-  position  Int
+  id           Int    @id @default(autoincrement())
+  chapterId    Int    @map("chapter_id")
+  title        String @db.VarChar(100)
+  displayOrder Int    @map("display_order")
 
   chapter  Chapter   @relation(fields: [chapterId], references: [id])
   problems Problem[]
 
   @@unique([chapterId, title]) // lets the seed upsert by title
-  @@index([chapterId, position])
+  @@index([chapterId, displayOrder])
   @@map("topics")
 }
 
 model Problem {
-  id          Int        @id @default(autoincrement())
-  topicId     Int        @map("topic_id")
-  title       String     @db.VarChar(200)
-  difficulty  Difficulty
-  youtubeUrl  String?    @map("youtube_url") @db.VarChar(500)
-  practiceUrl String?    @map("practice_url") @db.VarChar(500)
-  articleUrl  String?    @map("article_url") @db.VarChar(500)
-  position    Int
+  id           Int        @id @default(autoincrement())
+  topicId      Int        @map("topic_id")
+  title        String     @db.VarChar(200)
+  difficulty   Difficulty
+  youtubeUrl   String?    @map("youtube_url") @db.VarChar(500)
+  practiceUrl  String?    @map("practice_url") @db.VarChar(500)
+  articleUrl   String?    @map("article_url") @db.VarChar(500)
+  displayOrder Int        @map("display_order")
 
   topic             Topic              @relation(fields: [topicId], references: [id])
   solvedProblems    SolvedProblem[]
   scheduledProblems ScheduledProblem[]
 
   @@unique([topicId, title]) // lets the seed upsert by title
-  @@index([topicId, position])
+  @@index([topicId, displayOrder])
   @@index([difficulty])
   @@map("problems")
 }
@@ -102,14 +103,14 @@ model SolvedProblem {
 
 /// "I'll solve this problem on that date."
 model ScheduledProblem {
-  id           String                 @id @default(uuid()) @db.Uuid
-  userId       String                 @map("user_id") @db.Uuid
-  problemId    Int                    @map("problem_id")
+  id           String         @id @default(uuid()) @db.Uuid
+  userId       String         @map("user_id") @db.Uuid
+  problemId    Int            @map("problem_id")
   /// Date only: no time, no timezone.
-  scheduledFor DateTime               @map("scheduled_for") @db.Date
-  status       ScheduledProblemStatus @default(PENDING)
-  note         String?                @db.VarChar(500)
-  createdAt    DateTime               @default(now()) @map("created_at")
+  scheduledFor DateTime       @map("scheduled_for") @db.Date
+  status       ScheduleStatus @default(PENDING)
+  note         String?        @db.VarChar(500)
+  createdAt    DateTime       @default(now()) @map("created_at")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
@@ -118,4 +119,26 @@ model ScheduledProblem {
   @@index([userId, scheduledFor])
   @@index([problemId])
   @@map("scheduled_problems")
+}
+
+/// One refresh token. Only its SHA-256 hash is stored, never the raw token.
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash") @db.VarChar(64)
+  /// Same for every token in one login chain; used to kill the chain if a token is reused.
+  familyId     String    @map("family_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at")
+  /// Set when the token is used (rotated), logged out, or killed.
+  revokedAt    DateTime? @map("revoked_at")
+  /// The token that replaced this one when it was rotated.
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  userAgent    String?   @map("user_agent") @db.VarChar(500)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
 }

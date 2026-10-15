@@ -6,13 +6,13 @@ async function makeFixtures() {
     data: { email: 'schema@test.dev', name: 'Schema', passwordHash: 'x' },
   });
   const chapter = await prisma.chapter.create({
-    data: { title: 'Test Chapter', slug: 'test-chapter', position: 1 },
+    data: { title: 'Test Chapter', slug: 'test-chapter', displayOrder: 1 },
   });
   const topic = await prisma.topic.create({
-    data: { chapterId: chapter.id, title: 'Test Topic', position: 1 },
+    data: { chapterId: chapter.id, title: 'Test Topic', displayOrder: 1 },
   });
   const problem = await prisma.problem.create({
-    data: { topicId: topic.id, title: 'Test Problem', difficulty: 'EASY', position: 1 },
+    data: { topicId: topic.id, title: 'Test Problem', difficulty: 'EASY', displayOrder: 1 },
   });
   return { user, chapter, topic, problem };
 }

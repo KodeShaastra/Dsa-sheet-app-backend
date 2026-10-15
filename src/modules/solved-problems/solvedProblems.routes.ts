@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
-import * as controller from './solved-problems.controller.js';
-import { problemIdParamsSchema } from './solved-problems.schema.js';
+import * as controller from './solvedProblems.controller.js';
+import { problemIdParamsSchema } from './solvedProblems.schema.js';
 
 export const solvedProblemsRouter = Router();
 
@@ -12,10 +12,10 @@ solvedProblemsRouter.get('/', controller.getSolvedProblems);
 solvedProblemsRouter.put(
   '/:problemId',
   validate('params', problemIdParamsSchema),
-  controller.markSolved,
+  controller.markProblemSolved,
 );
 solvedProblemsRouter.delete(
   '/:problemId',
   validate('params', problemIdParamsSchema),
-  controller.unmarkSolved,
+  controller.unmarkProblemSolved,
 );

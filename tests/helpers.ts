@@ -12,39 +12,39 @@ export async function resetDb() {
 
 /**
  * A tiny sheet. Rows are inserted out of order on purpose,
- * so tests can check that the API sorts by position.
+ * so tests can check that the API sorts by displayOrder.
  */
 export async function seedSmallSheet() {
   const graphs = await prisma.chapter.create({
-    data: { title: 'Graphs', slug: 'graphs', position: 2 },
+    data: { title: 'Graphs', slug: 'graphs', displayOrder: 2 },
   });
   const arrays = await prisma.chapter.create({
-    data: { title: 'Arrays', slug: 'arrays', position: 1 },
+    data: { title: 'Arrays', slug: 'arrays', displayOrder: 1 },
   });
 
   const twoPointers = await prisma.topic.create({
-    data: { chapterId: arrays.id, title: 'Two Pointers', position: 2 },
+    data: { chapterId: arrays.id, title: 'Two Pointers', displayOrder: 2 },
   });
   const hashing = await prisma.topic.create({
-    data: { chapterId: arrays.id, title: 'Hashing', position: 1 },
+    data: { chapterId: arrays.id, title: 'Hashing', displayOrder: 1 },
   });
   const bfs = await prisma.topic.create({
-    data: { chapterId: graphs.id, title: 'BFS', position: 1 },
+    data: { chapterId: graphs.id, title: 'BFS', displayOrder: 1 },
   });
 
   const p = (
     topicId: number,
     title: string,
     difficulty: 'EASY' | 'MEDIUM' | 'HARD',
-    position: number,
+    displayOrder: number,
   ) =>
     prisma.problem.create({
       data: {
         topicId,
         title,
         difficulty,
-        position,
-        practiceUrl: `https://example.test/${position}`,
+        displayOrder,
+        practiceUrl: `https://example.test/${displayOrder}`,
       },
     });
 
@@ -82,4 +82,17 @@ export async function loggedInAgent(app: Express, email: string) {
 /** Paths from an error's details array, e.g. ["email", "password"]. */
 export function detailPaths(body: { error: { details: { path: string }[] } }): string[] {
   return body.error.details.map((d) => d.path);
+}
+
+/** The full Set-Cookie header for `name`, e.g. "dsa_token=abc; Max-Age=900; Path=/; HttpOnly". */
+export function setCookie(res: { headers: Record<string, unknown> }, name: string): string {
+  const cookies = res.headers['set-cookie'] as string[] | undefined;
+  const cookie = cookies?.find((c) => c.startsWith(`${name}=`));
+  if (!cookie) throw new Error(`No ${name} cookie set`);
+  return cookie;
+}
+
+/** Just the value from a Set-Cookie header. */
+export function cookieValue(setCookieHeader: string): string {
+  return setCookieHeader.split(';')[0]!.split('=').slice(1).join('=');
 }

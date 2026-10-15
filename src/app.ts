@@ -7,9 +7,9 @@ import { isTest } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
-import { scheduledProblemsRouter } from './modules/scheduled-problems/scheduled-problems.routes.js';
+import { scheduledProblemsRouter } from './modules/scheduled-problems/scheduledProblems.routes.js';
 import { sheetRouter } from './modules/sheet/sheet.routes.js';
-import { solvedProblemsRouter } from './modules/solved-problems/solved-problems.routes.js';
+import { solvedProblemsRouter } from './modules/solved-problems/solvedProblems.routes.js';
 import { AppError } from './utils/AppError.js';
 
 interface AppOptions {

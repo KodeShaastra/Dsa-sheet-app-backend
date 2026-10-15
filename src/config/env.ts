@@ -1,20 +1,36 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().min(0).max(65535).default(4000),
-  DATABASE_URL: z.string().min(1),
-  JWT_SECRET: z
-    .string()
-    .min(32, 'JWT_SECRET must be at least 32 characters')
-    .refine((s) => !s.startsWith('change-me'), 'JWT_SECRET is still the example value'),
-  JWT_EXPIRES_IN: z.string().default('7d'),
-  COOKIE_NAME: z
-    .string()
-    .regex(/^[A-Za-z0-9_-]+$/, 'COOKIE_NAME may only use letters, numbers, _ and -')
-    .default('dsa_token'),
-});
+const UNIT_MS = { s: 1000, m: 60 * 1000, h: 60 * 60 * 1000, d: 24 * 60 * 60 * 1000 } as const;
+
+/** "15m" → 900000. Units: s, m, h, d. */
+const durationMs = z
+  .string()
+  .regex(/^\d+[smhd]$/, 'Use a number and a unit, like 15m, 1h, or 7d')
+  .transform((s) => Number(s.slice(0, -1)) * UNIT_MS[s.slice(-1) as keyof typeof UNIT_MS]);
+
+const cookieName = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]+$/, 'Cookie names may only use letters, numbers, _ and -');
+
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().min(0).max(65535).default(4000),
+    DATABASE_URL: z.string().min(1),
+    JWT_SECRET: z
+      .string()
+      .min(32, 'JWT_SECRET must be at least 32 characters')
+      .refine((s) => !s.startsWith('change-me'), 'JWT_SECRET is still the example value'),
+    ACCESS_TOKEN_TTL: durationMs.prefault('15m'),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+    COOKIE_NAME: cookieName.default('dsa_token'),
+    REFRESH_COOKIE_NAME: cookieName.default('dsa_refresh'),
+  })
+  .refine((e) => e.COOKIE_NAME !== e.REFRESH_COOKIE_NAME, {
+    path: ['REFRESH_COOKIE_NAME'],
+    message: 'REFRESH_COOKIE_NAME must be different from COOKIE_NAME',
+  });
 
 const parsed = envSchema.safeParse(process.env);
 

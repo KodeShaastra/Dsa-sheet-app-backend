@@ -12,19 +12,19 @@ async function seedSheet() {
   for (const [chapterIndex, c] of chapters.entries()) {
     const chapter = await prisma.chapter.upsert({
       where: { slug: c.slug },
-      update: { title: c.title, position: chapterIndex + 1 },
-      create: { slug: c.slug, title: c.title, position: chapterIndex + 1 },
+      update: { title: c.title, displayOrder: chapterIndex + 1 },
+      create: { slug: c.slug, title: c.title, displayOrder: chapterIndex + 1 },
     });
 
     for (const [topicIndex, t] of c.topics.entries()) {
       const topic = await prisma.topic.upsert({
         where: { chapterId_title: { chapterId: chapter.id, title: t.title } },
-        update: { position: topicIndex + 1 },
-        create: { chapterId: chapter.id, title: t.title, position: topicIndex + 1 },
+        update: { displayOrder: topicIndex + 1 },
+        create: { chapterId: chapter.id, title: t.title, displayOrder: topicIndex + 1 },
       });
 
       for (const [problemIndex, [title, slug, difficulty]] of t.problems.entries()) {
-        const data = { difficulty, practiceUrl: leetcodeUrl(slug), position: problemIndex + 1 };
+        const data = { difficulty, practiceUrl: leetcodeUrl(slug), displayOrder: problemIndex + 1 };
         // youtubeUrl / articleUrl are not touched on update, so links added later are kept.
         await prisma.problem.upsert({
           where: { topicId_title: { topicId: topic.id, title } },

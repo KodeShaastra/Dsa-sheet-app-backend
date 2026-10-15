@@ -1,7 +1,14 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../utils/AppError.js';
+import { signAccessToken } from '../../utils/jwt.js';
 import type { LoginInput, SignupInput } from './auth.schema.js';
+import {
+  issueRefreshToken,
+  revokeAllRefreshTokens,
+  revokeRefreshToken,
+  rotateRefreshToken,
+} from './refreshTokens.service.js';
 
 const BCRYPT_COST = 12;
 
@@ -37,4 +44,44 @@ export async function getUser(id: string) {
   const user = await prisma.user.findUnique({ where: { id }, select: publicUser });
   if (!user) throw new AppError(401, 'UNAUTHORIZED', 'Not logged in');
   return user;
+}
+
+export interface SessionTokens {
+  accessToken: string;
+  /** null when the browser already has the newest refresh cookie (two-tab grace case). */
+  refreshToken: string | null;
+}
+
+/** After signup/login: a new access token and a new refresh token chain. */
+export async function startSession(
+  userId: string,
+  userAgent: string | null,
+): Promise<SessionTokens> {
+  return {
+    accessToken: signAccessToken(userId),
+    refreshToken: await issueRefreshToken(userId, userAgent),
+  };
+}
+
+/** Swaps a refresh token for fresh tokens. Missing, expired, or reused → 401. */
+export async function refreshSession(rawRefreshToken: string | null, userAgent: string | null) {
+  if (!rawRefreshToken) throw new AppError(401, 'UNAUTHORIZED', 'Not logged in');
+
+  const result = await rotateRefreshToken(rawRefreshToken, userAgent);
+  const user = await getUser(result.userId);
+  const tokens: SessionTokens = {
+    accessToken: signAccessToken(user.id),
+    refreshToken: result.kind === 'rotated' ? result.refreshToken : null,
+  };
+  return { user, tokens };
+}
+
+/** Logout on this device. Works even without a valid access token. */
+export async function endSession(rawRefreshToken: string | null): Promise<void> {
+  if (rawRefreshToken) await revokeRefreshToken(rawRefreshToken);
+}
+
+/** Logout on every device. */
+export async function endAllSessions(userId: string): Promise<void> {
+  await revokeAllRefreshTokens(userId);
 }

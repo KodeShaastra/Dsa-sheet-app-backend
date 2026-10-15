@@ -65,7 +65,7 @@ export async function getSolvedProblems(userId: string): Promise<SolvedProblemsS
 }
 
 /** Tick a problem. Doing it twice is fine; the first solvedAt is kept. */
-export async function markSolved(userId: string, problemId: number): Promise<void> {
+export async function markProblemSolved(userId: string, problemId: number): Promise<void> {
   try {
     await prisma.solvedProblem.upsert({
       where: { userId_problemId: { userId, problemId } },
@@ -84,6 +84,6 @@ export async function markSolved(userId: string, problemId: number): Promise<voi
 }
 
 /** Untick a problem. Doing it twice (or on a never-solved problem) is fine. */
-export async function unmarkSolved(userId: string, problemId: number): Promise<void> {
+export async function unmarkProblemSolved(userId: string, problemId: number): Promise<void> {
   await prisma.solvedProblem.deleteMany({ where: { userId, problemId } });
 }

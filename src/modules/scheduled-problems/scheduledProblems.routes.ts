@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
-import * as controller from './scheduled-problems.controller.js';
+import * as controller from './scheduledProblems.controller.js';
 import {
-  createScheduledProblemsSchema,
+  scheduleProblemsSchema,
   listScheduledProblemsQuerySchema,
   scheduledProblemIdParamsSchema,
   updateScheduledProblemSchema,
-} from './scheduled-problems.schema.js';
+} from './scheduledProblems.schema.js';
 
 export const scheduledProblemsRouter = Router();
 
@@ -20,8 +20,8 @@ scheduledProblemsRouter.get(
 );
 scheduledProblemsRouter.post(
   '/',
-  validate('body', createScheduledProblemsSchema),
-  controller.createScheduledProblems,
+  validate('body', scheduleProblemsSchema),
+  controller.scheduleProblems,
 );
 scheduledProblemsRouter.patch(
   '/:scheduledProblemId',

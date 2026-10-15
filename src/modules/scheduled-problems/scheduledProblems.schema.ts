@@ -26,7 +26,7 @@ const noteSchema = z
   .max(500)
   .transform((s) => (s === '' ? null : s));
 
-export const createScheduledProblemsSchema = z.object({
+export const scheduleProblemsSchema = z.object({
   scheduledFor: dateSchema,
   problemIds: z
     .array(numericIdSchema)
@@ -49,6 +49,6 @@ export const updateScheduledProblemSchema = z
 export const scheduledProblemIdParamsSchema = z.object({ scheduledProblemId: z.uuid() });
 
 export type ListScheduledProblemsQuery = z.infer<typeof listScheduledProblemsQuerySchema>;
-export type CreateScheduledProblemsInput = z.infer<typeof createScheduledProblemsSchema>;
+export type ScheduleProblemsInput = z.infer<typeof scheduleProblemsSchema>;
 export type UpdateScheduledProblemInput = z.infer<typeof updateScheduledProblemSchema>;
 export type ScheduledProblemIdParams = z.infer<typeof scheduledProblemIdParamsSchema>;

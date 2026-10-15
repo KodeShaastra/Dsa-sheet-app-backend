@@ -1,11 +1,11 @@
 import { execSync } from 'node:child_process';
-import { config } from 'dotenv';
+import { loadTestEnv } from './test-env.js';
 
-// Runs once before all tests: bring the test database up to date.
+// Runs once before all tests: check we're on the test database, then bring it up to date.
 export default function setup() {
-  const { parsed } = config({ path: '.env.test', override: true, quiet: true });
+  const testEnv = loadTestEnv();
   execSync('npx prisma migrate deploy', {
     stdio: 'inherit',
-    env: { ...process.env, ...parsed },
+    env: { ...process.env, ...testEnv },
   });
 }

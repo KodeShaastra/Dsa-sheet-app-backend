@@ -1,14 +1,14 @@
 import { Prisma } from '../../generated/prisma/client.js';
-import type { Difficulty, ScheduledProblemStatus } from '../../generated/prisma/enums.js';
+import type { Difficulty, ScheduleStatus } from '../../generated/prisma/enums.js';
 import { prisma } from '../../lib/prisma.js';
 import { AppError } from '../../utils/AppError.js';
 import { toDateString, toDbDate } from '../../utils/date.js';
 import { toApiId } from '../../utils/ids.js';
 import type {
-  CreateScheduledProblemsInput,
+  ScheduleProblemsInput,
   ListScheduledProblemsQuery,
   UpdateScheduledProblemInput,
-} from './scheduled-problems.schema.js';
+} from './scheduledProblems.schema.js';
 
 const scheduledProblemSelect = {
   id: true,
@@ -21,7 +21,7 @@ const scheduledProblemSelect = {
 interface ScheduledProblemRow {
   id: string;
   scheduledFor: Date;
-  status: ScheduledProblemStatus;
+  status: ScheduleStatus;
   note: string | null;
   problem: { id: number; title: string; difficulty: Difficulty };
 }
@@ -75,7 +75,7 @@ async function ensureProblemsExist(problemIds: number[]): Promise<void> {
 /** Inserts one row per problem, skipping ones already scheduled for that date. */
 async function insertSkippingDuplicates(
   userId: string,
-  input: CreateScheduledProblemsInput,
+  input: ScheduleProblemsInput,
 ): Promise<ScheduledProblemRow[]> {
   const scheduledFor = toDbDate(input.scheduledFor);
   try {
@@ -102,7 +102,7 @@ function sortByIdOrder(rows: ScheduledProblemRow[], problemIds: number[]): Sched
 }
 
 /** Schedules each problem for the date. Problems already scheduled for that date are skipped. */
-export async function createScheduledProblems(userId: string, input: CreateScheduledProblemsInput) {
+export async function scheduleProblems(userId: string, input: ScheduleProblemsInput) {
   await ensureProblemsExist(input.problemIds);
   const created = await insertSkippingDuplicates(userId, input);
   return sortByIdOrder(created, input.problemIds).map(toApiScheduledProblem);

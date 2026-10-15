@@ -28,20 +28,20 @@ let cache: { sheet: Sheet; expiresAt: number } | null = null;
 let loading: Promise<Sheet> | null = null;
 
 async function loadSheet(): Promise<Sheet> {
-  const byPosition = { position: 'asc' } as const;
+  const byDisplayOrder = { displayOrder: 'asc' } as const;
   const rows = await prisma.chapter.findMany({
-    orderBy: byPosition,
+    orderBy: byDisplayOrder,
     select: {
       id: true,
       title: true,
       slug: true,
       topics: {
-        orderBy: byPosition,
+        orderBy: byDisplayOrder,
         select: {
           id: true,
           title: true,
           problems: {
-            orderBy: byPosition,
+            orderBy: byDisplayOrder,
             select: {
               id: true,
               title: true,

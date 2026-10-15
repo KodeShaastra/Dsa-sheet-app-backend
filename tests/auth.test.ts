@@ -3,18 +3,13 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
-import { detailPaths } from './helpers.js';
+import { cookieValue, detailPaths, setCookie } from './helpers.js';
 
 const app = createApp();
 const user = { email: '  Ada@Example.COM ', name: 'Ada', password: 'correct-horse-1' };
 const login = { email: 'ada@example.com', password: user.password };
 
-function authCookie(res: request.Response): string {
-  const cookies = res.headers['set-cookie'] as unknown as string[] | undefined;
-  const cookie = cookies?.find((c) => c.startsWith('dsa_token='));
-  if (!cookie) throw new Error('No auth cookie set');
-  return cookie;
-}
+const authCookie = (res: request.Response) => setCookie(res, 'dsa_token');
 
 beforeEach(async () => {
   await prisma.user.deleteMany();
@@ -40,14 +35,24 @@ describe('POST /api/auth/signup', () => {
     expect(row.passwordHash).not.toContain(user.password);
   });
 
-  it('sets the auth cookie with the right flags', async () => {
+  it('sets the access and refresh cookies with the right flags', async () => {
     const res = await request(app).post('/api/auth/signup').send(user);
-    const cookie = authCookie(res);
-    expect(cookie).toMatch(/HttpOnly/);
-    expect(cookie).toMatch(/SameSite=Lax/);
-    expect(cookie).toMatch(/Path=\//);
-    expect(cookie).toMatch(/Max-Age=604800/); // 7 days
-    expect(cookie).not.toMatch(/Secure/); // only in production
+    const access = setCookie(res, 'dsa_token');
+    const refresh = setCookie(res, 'dsa_refresh');
+    for (const cookie of [access, refresh]) {
+      expect(cookie).toMatch(/HttpOnly/);
+      expect(cookie).toMatch(/SameSite=Lax/);
+      expect(cookie).toMatch(/Path=\//);
+      expect(cookie).not.toMatch(/Secure/); // only in production
+    }
+    expect(access).toMatch(/Max-Age=900;/); // 15 minutes
+    expect(refresh).toMatch(/Max-Age=604800;/); // 7 days
+  });
+
+  it('never puts a token in the response body', async () => {
+    const res = await request(app).post('/api/auth/signup').send(user);
+    expect(Object.keys(res.body)).toEqual(['user']);
+    expect(JSON.stringify(res.body)).not.toContain(cookieValue(setCookie(res, 'dsa_refresh')));
   });
 
   it('puts { sub: userId } in the JWT', async () => {

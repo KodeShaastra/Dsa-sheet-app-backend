@@ -1,7 +1,8 @@
 import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
-import { verifyToken } from '../utils/jwt.js';
+import { readCookie } from '../utils/cookies.js';
+import { verifyAccessToken } from '../utils/jwt.js';
 
 export interface AuthUser {
   id: string;
@@ -16,17 +17,10 @@ declare global {
   }
 }
 
-/** cookie-parser types req.cookies as `any`, so read it as unknown and narrow. */
-function readAuthCookie(cookies: unknown): string | null {
-  if (typeof cookies !== 'object' || cookies === null) return null;
-  const token: unknown = (cookies as Record<string, unknown>)[env.COOKIE_NAME];
-  return typeof token === 'string' ? token : null;
-}
-
-/** Reads the JWT from the auth cookie and sets req.user, or responds 401. */
+/** Reads the access token cookie and sets req.user, or responds 401. */
 export const requireAuth: RequestHandler = (req, _res, next) => {
-  const token = readAuthCookie(req.cookies);
-  const userId = token ? verifyToken(token) : null;
+  const token = readCookie(req.cookies, env.COOKIE_NAME);
+  const userId = token ? verifyAccessToken(token) : null;
 
   if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Not logged in');
 
