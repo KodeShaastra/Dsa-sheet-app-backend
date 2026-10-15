@@ -2,7 +2,7 @@
 CREATE TYPE "difficulty" AS ENUM ('EASY', 'MEDIUM', 'HARD');
 
 -- CreateEnum
-CREATE TYPE "plan_status" AS ENUM ('PLANNED', 'DONE', 'SKIPPED');
+CREATE TYPE "scheduled_problem_status" AS ENUM ('PENDING', 'DONE', 'SKIPPED');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -50,25 +50,25 @@ CREATE TABLE "problems" (
 );
 
 -- CreateTable
-CREATE TABLE "user_progress" (
+CREATE TABLE "solved_problems" (
     "user_id" UUID NOT NULL,
     "problem_id" INTEGER NOT NULL,
-    "completed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "solved_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "user_progress_pkey" PRIMARY KEY ("user_id","problem_id")
+    CONSTRAINT "solved_problems_pkey" PRIMARY KEY ("user_id","problem_id")
 );
 
 -- CreateTable
-CREATE TABLE "study_plans" (
+CREATE TABLE "scheduled_problems" (
     "id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
     "problem_id" INTEGER NOT NULL,
-    "planned_date" DATE NOT NULL,
-    "status" "plan_status" NOT NULL DEFAULT 'PLANNED',
+    "scheduled_for" DATE NOT NULL,
+    "status" "scheduled_problem_status" NOT NULL DEFAULT 'PENDING',
     "note" VARCHAR(500),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "study_plans_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "scheduled_problems_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -93,16 +93,16 @@ CREATE INDEX "problems_difficulty_idx" ON "problems"("difficulty");
 CREATE UNIQUE INDEX "problems_topic_id_title_key" ON "problems"("topic_id", "title");
 
 -- CreateIndex
-CREATE INDEX "user_progress_problem_id_idx" ON "user_progress"("problem_id");
+CREATE INDEX "solved_problems_problem_id_idx" ON "solved_problems"("problem_id");
 
 -- CreateIndex
-CREATE INDEX "study_plans_user_id_planned_date_idx" ON "study_plans"("user_id", "planned_date");
+CREATE INDEX "scheduled_problems_user_id_scheduled_for_idx" ON "scheduled_problems"("user_id", "scheduled_for");
 
 -- CreateIndex
-CREATE INDEX "study_plans_problem_id_idx" ON "study_plans"("problem_id");
+CREATE INDEX "scheduled_problems_problem_id_idx" ON "scheduled_problems"("problem_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "study_plans_user_id_problem_id_planned_date_key" ON "study_plans"("user_id", "problem_id", "planned_date");
+CREATE UNIQUE INDEX "scheduled_problems_user_id_problem_id_scheduled_for_key" ON "scheduled_problems"("user_id", "problem_id", "scheduled_for");
 
 -- AddForeignKey
 ALTER TABLE "topics" ADD CONSTRAINT "topics_chapter_id_fkey" FOREIGN KEY ("chapter_id") REFERENCES "chapters"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -111,16 +111,16 @@ ALTER TABLE "topics" ADD CONSTRAINT "topics_chapter_id_fkey" FOREIGN KEY ("chapt
 ALTER TABLE "problems" ADD CONSTRAINT "problems_topic_id_fkey" FOREIGN KEY ("topic_id") REFERENCES "topics"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_progress" ADD CONSTRAINT "user_progress_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "solved_problems" ADD CONSTRAINT "solved_problems_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_progress" ADD CONSTRAINT "user_progress_problem_id_fkey" FOREIGN KEY ("problem_id") REFERENCES "problems"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "solved_problems" ADD CONSTRAINT "solved_problems_problem_id_fkey" FOREIGN KEY ("problem_id") REFERENCES "problems"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "study_plans" ADD CONSTRAINT "study_plans_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "scheduled_problems" ADD CONSTRAINT "scheduled_problems_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "study_plans" ADD CONSTRAINT "study_plans_problem_id_fkey" FOREIGN KEY ("problem_id") REFERENCES "problems"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "scheduled_problems" ADD CONSTRAINT "scheduled_problems_problem_id_fkey" FOREIGN KEY ("problem_id") REFERENCES "problems"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Emails are always stored lowercase (Prisma can't express CHECK constraints, so it's added by hand).
 ALTER TABLE "users" ADD CONSTRAINT "users_email_lowercase" CHECK ("email" = LOWER("email"));
