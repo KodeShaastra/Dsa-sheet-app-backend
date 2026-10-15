@@ -10,7 +10,7 @@ const BCRYPT_COST = 12;
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', BCRYPT_COST);
 
 // Never send passwordHash back to the client.
-const publicUser = { id: true, email: true, name: true, createdAt: true } as const;
+const publicUser = { id: true, name: true, email: true } as const;
 
 export async function signup(input: SignupInput) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
@@ -30,7 +30,7 @@ export async function login(input: LoginInput) {
     throw new AppError(401, 'UNAUTHORIZED', 'Invalid email or password');
   }
 
-  return { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt };
+  return { id: user.id, name: user.name, email: user.email };
 }
 
 export async function getUser(id: string) {
