@@ -32,6 +32,6 @@ describe('validate middleware', () => {
     const res = await request(app).get('/items/abc?page=0');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(res.body.error.details).toHaveProperty('id');
+    expect(res.body.error.details.map((d: { path: string }) => d.path)).toContain('id');
   });
 });

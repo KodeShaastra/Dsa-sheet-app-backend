@@ -3,6 +3,7 @@ import request from 'supertest';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
+import { detailPaths } from './helpers.js';
 
 const app = createApp();
 const user = { email: '  Ada@Example.COM ', name: 'Ada', password: 'correct-horse-1' };
@@ -27,7 +28,9 @@ describe('POST /api/auth/signup', () => {
   it('creates the user with a trimmed, lowercased email', async () => {
     const res = await request(app).post('/api/auth/signup').send(user);
     expect(res.status).toBe(201);
-    expect(res.body.user).toMatchObject({ email: 'ada@example.com', name: 'Ada' });
+    expect(res.body).toEqual({
+      user: { id: expect.any(String), name: 'Ada', email: 'ada@example.com' },
+    });
   });
 
   it('hashes the password with bcrypt cost 12', async () => {
@@ -60,6 +63,7 @@ describe('POST /api/auth/signup', () => {
       .post('/api/auth/signup')
       .send({ ...user, email: 'ADA@example.com' });
     expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('CONFLICT');
   });
 
   it('rejects bad input with field errors', async () => {
@@ -68,9 +72,7 @@ describe('POST /api/auth/signup', () => {
       .send({ email: 'not-an-email', name: '', password: 'short' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(Object.keys(res.body.error.details)).toEqual(
-      expect.arrayContaining(['email', 'name', 'password']),
-    );
+    expect(detailPaths(res.body)).toEqual(expect.arrayContaining(['email', 'name', 'password']));
   });
 
   it('rejects broken JSON', async () => {
@@ -79,6 +81,7 @@ describe('POST /api/auth/signup', () => {
       .set('Content-Type', 'application/json')
       .send('{bad json');
     expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('no longer answers on the old /register path', async () => {
