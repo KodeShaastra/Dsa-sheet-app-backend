@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+
+# Never commit env files (they hold secrets). Only the example is shared.
+.env
+.env.*
+!.env.example
+
+/src/generated
+
+# AI tool notes added by `prisma init`. Kept locally, not shared.
+/.agents/
+/.claude/
+/.windsurf/
+/skills-lock.json

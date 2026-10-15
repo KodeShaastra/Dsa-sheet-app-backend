@@ -1,0 +1,119 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Naming: camelCase in code, snake_case in the database (via @map / @@map).
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+
+  @@map("difficulty")
+}
+
+enum PlanStatus {
+  PLANNED
+  DONE
+  SKIPPED
+
+  @@map("plan_status")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(100)
+  /// Always stored lowercase (enforced by Zod and a DB check constraint).
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  progress   UserProgress[]
+  studyPlans StudyPlan[]
+
+  @@map("users")
+}
+
+model Chapter {
+  id       Int    @id @default(autoincrement())
+  title    String @db.VarChar(100)
+  slug     String @unique @db.VarChar(100)
+  position Int
+
+  topics Topic[]
+
+  @@map("chapters")
+}
+
+model Topic {
+  id        Int    @id @default(autoincrement())
+  chapterId Int    @map("chapter_id")
+  title     String @db.VarChar(100)
+  position  Int
+
+  chapter  Chapter   @relation(fields: [chapterId], references: [id])
+  problems Problem[]
+
+  @@unique([chapterId, title]) // lets the seed upsert by title
+  @@index([chapterId, position])
+  @@map("topics")
+}
+
+model Problem {
+  id          Int        @id @default(autoincrement())
+  topicId     Int        @map("topic_id")
+  title       String     @db.VarChar(200)
+  difficulty  Difficulty
+  youtubeUrl  String?    @map("youtube_url") @db.VarChar(500)
+  practiceUrl String?    @map("practice_url") @db.VarChar(500)
+  articleUrl  String?    @map("article_url") @db.VarChar(500)
+  position    Int
+
+  topic      Topic          @relation(fields: [topicId], references: [id])
+  progress   UserProgress[]
+  studyPlans StudyPlan[]
+
+  @@unique([topicId, title]) // lets the seed upsert by title
+  @@index([topicId, position])
+  @@index([difficulty])
+  @@map("problems")
+}
+
+model UserProgress {
+  userId      String   @map("user_id") @db.Uuid
+  problemId   Int      @map("problem_id")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, problemId])
+  @@index([problemId])
+  @@map("user_progress")
+}
+
+model StudyPlan {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  problemId   Int        @map("problem_id")
+  /// Date only: no time, no timezone.
+  plannedDate DateTime   @map("planned_date") @db.Date
+  status      PlanStatus @default(PLANNED)
+  note        String?    @db.VarChar(500)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, problemId, plannedDate])
+  @@index([userId, plannedDate])
+  @@index([problemId])
+  @@map("study_plans")
+}
