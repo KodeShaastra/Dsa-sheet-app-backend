@@ -204,25 +204,27 @@ All responses are JSON. Ids are strings. Dates are `YYYY-MM-DD`. Errors always l
 | `RATE_LIMITED`     | 429  | Too many requests                            |
 | `INTERNAL`         | 500  | Something broke on the server                |
 
-| Method | Path                                          | Login          | Body / Query                                | Returns                                            |
-| ------ | --------------------------------------------- | -------------- | ------------------------------------------- | -------------------------------------------------- |
-| GET    | `/api/health`                                 | no             |                                             | `{ status: "ok" }`                                 |
-| POST   | `/api/auth/signup`                            | no             | `{ name, email, password }` (5/min per IP)  | `{ user }` + 2 cookies, 201                        |
-| POST   | `/api/auth/login`                             | no             | `{ email, password }` (5/min per IP)        | `{ user }` + 2 cookies                             |
-| POST   | `/api/auth/refresh`                           | refresh cookie | (30/min per IP)                             | `{ user }` + new cookies                           |
-| POST   | `/api/auth/logout`                            | no             |                                             | 204, refresh token revoked, cookies cleared        |
-| POST   | `/api/auth/logout-all`                        | yes            |                                             | 204, logged out on every device                    |
-| GET    | `/api/auth/me`                                | yes            |                                             | `{ user: { id, name, email } }`                    |
-| GET    | `/api/sheet`                                  | yes            |                                             | `{ chapters }` (cached 10 min in memory)           |
-| GET    | `/api/solved-problems`                        | yes            |                                             | `{ solvedProblemIds, stats }`                      |
-| PUT    | `/api/solved-problems/:problemId`             | yes            |                                             | 204 tick (safe to repeat; 404 if no such problem)  |
-| DELETE | `/api/solved-problems/:problemId`             | yes            |                                             | 204 untick (safe to repeat)                        |
-| GET    | `/api/scheduled-problems`                     | yes            | `?from=&to=` (max 62 days, both ends count) | `{ scheduledProblems }`                            |
-| POST   | `/api/scheduled-problems`                     | yes            | `{ scheduledFor, problemIds, note? }`       | `{ scheduledProblems }` 201 (only newly created)   |
-| PATCH  | `/api/scheduled-problems/:scheduledProblemId` | yes            | `{ scheduledFor?, status?, note? }`         | `{ scheduledProblem }` (DONE also marks it solved) |
-| DELETE | `/api/scheduled-problems/:scheduledProblemId` | yes            |                                             | 204                                                |
+| Method | Path                                          | Login          | Body / Query                               | Returns                                             |
+| ------ | --------------------------------------------- | -------------- | ------------------------------------------ | --------------------------------------------------- |
+| GET    | `/api/health`                                 | no             |                                            | `{ status: "ok" }`                                  |
+| POST   | `/api/auth/signup`                            | no             | `{ name, email, password }` (5/min per IP) | `{ user }` + 2 cookies, 201                         |
+| POST   | `/api/auth/login`                             | no             | `{ email, password }` (5/min per IP)       | `{ user }` + 2 cookies                              |
+| POST   | `/api/auth/refresh`                           | refresh cookie | (30/min per IP)                            | `{ user }` + new cookies                            |
+| POST   | `/api/auth/logout`                            | no             |                                            | 204, refresh token revoked, cookies cleared         |
+| POST   | `/api/auth/logout-all`                        | yes            |                                            | 204, logged out on every device                     |
+| GET    | `/api/auth/me`                                | yes            |                                            | `{ user: { id, name, email } }`                     |
+| GET    | `/api/sheet`                                  | yes            |                                            | `{ chapters }` (cached 10 min in memory)            |
+| GET    | `/api/solved-problems`                        | yes            |                                            | `{ solvedProblemIds, stats }`                       |
+| PUT    | `/api/solved-problems/:problemId`             | yes            |                                            | 204 tick (safe to repeat; 404 if no such problem)   |
+| DELETE | `/api/solved-problems/:problemId`             | yes            |                                            | 204 untick (safe to repeat)                         |
+| GET    | `/api/scheduled-problems`                     | yes            |                                            | `{ scheduledProblems }` (whole calendar)            |
+| POST   | `/api/scheduled-problems`                     | yes            | `{ scheduledFor, problemIds, note? }`      | `{ scheduledProblems }` 201 (409 if any is planned) |
+| PATCH  | `/api/scheduled-problems/:scheduledProblemId` | yes            | `{ scheduledFor?, status?, note? }`        | `{ scheduledProblem }` (DONE also marks it solved)  |
+| DELETE | `/api/scheduled-problems/:scheduledProblemId` | yes            |                                            | 204                                                 |
 
 Scheduled problem `status`: `PENDING | DONE | SKIPPED`. A "missed" problem is `PENDING` with a past date.
+
+A problem can be on the calendar on only one date at a time. You can't schedule or move a problem onto a past date.
 
 ### Example
 
@@ -264,7 +266,7 @@ database name ends in `_test` (`tests/test-env.ts`). Your real database can't be
 | `refreshTokens.test.ts`     | Rotation, reuse kills the family, two-tab grace, expiry, logout, logout-all, cleanup, rate limit |
 | `sheet.test.ts`             | Order by displayOrder, string ids, `Cache-Control`, 10-minute cache                              |
 | `solvedProblems.test.ts`    | Tick/untick, safe to repeat, stats, users kept separate                                          |
-| `scheduledProblems.test.ts` | Create, list by date range, update, delete, DONE → solved, ownership                             |
+| `scheduledProblems.test.ts` | Create, one date per problem, no past dates, list, update, delete, DONE → solved, ownership      |
 | `schema.test.ts`            | Database rules: UUIDs, lowercase email, date-only, cascades                                      |
 | `validate.test.ts`          | The `validate()` middleware                                                                      |
 | `secrets.test.ts`           | Logs hide secrets; app refuses bad `JWT_SECRET`                                                  |

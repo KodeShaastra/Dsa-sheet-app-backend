@@ -54,18 +54,17 @@ describe('database schema', () => {
     expect(item.status).toBe('PENDING');
   });
 
-  it('allows the same problem on different days but not twice on one day', async () => {
+  it('allows a problem on only one date per user', async () => {
     const { user, problem } = await makeFixtures();
     const base = { userId: user.id, problemId: problem.id };
     await prisma.scheduledProblem.create({
       data: { ...base, scheduledFor: new Date('2026-10-20') },
     });
-    await prisma.scheduledProblem.create({
-      data: { ...base, scheduledFor: new Date('2026-10-21') },
-    });
-    await expect(
-      prisma.scheduledProblem.create({ data: { ...base, scheduledFor: new Date('2026-10-20') } }),
-    ).rejects.toThrow();
+    for (const date of ['2026-10-20', '2026-10-21']) {
+      await expect(
+        prisma.scheduledProblem.create({ data: { ...base, scheduledFor: new Date(date) } }),
+      ).rejects.toThrow();
+    }
   });
 
   it('allows one solved row per user and problem', async () => {

@@ -1,23 +1,11 @@
 import { z } from 'zod';
-import { dateSchema, daysInclusive } from '../../utils/date.js';
+import { dateSchema, earliestToday } from '../../utils/date.js';
 import { numericIdSchema } from '../../utils/ids.js';
 
-export const MAX_RANGE_DAYS = 62;
-
-export const listScheduledProblemsQuerySchema = z
-  .object({ from: dateSchema, to: dateSchema })
-  .superRefine(({ from, to }, ctx) => {
-    const days = daysInclusive(from, to);
-    if (days < 1) {
-      ctx.addIssue({ code: 'custom', path: ['to'], message: '"to" must be on or after "from"' });
-    } else if (days > MAX_RANGE_DAYS) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['to'],
-        message: `Date range can be at most ${MAX_RANGE_DAYS} days`,
-      });
-    }
-  });
+/** A date you can plan for: today or later. ("YYYY-MM-DD" strings sort like dates.) */
+const upcomingDateSchema = dateSchema.refine((date) => date >= earliestToday(), {
+  message: "Can't schedule on a past date",
+});
 
 // Blank notes are stored as null.
 const noteSchema = z
@@ -27,7 +15,7 @@ const noteSchema = z
   .transform((s) => (s === '' ? null : s));
 
 export const scheduleProblemsSchema = z.object({
-  scheduledFor: dateSchema,
+  scheduledFor: upcomingDateSchema,
   problemIds: z
     .array(numericIdSchema)
     .min(1)
@@ -38,7 +26,7 @@ export const scheduleProblemsSchema = z.object({
 
 export const updateScheduledProblemSchema = z
   .object({
-    scheduledFor: dateSchema.optional(),
+    scheduledFor: upcomingDateSchema.optional(),
     status: z.enum(['PENDING', 'DONE', 'SKIPPED']).optional(),
     note: noteSchema.nullable().optional(), // null clears the note
   })
@@ -48,7 +36,6 @@ export const updateScheduledProblemSchema = z
 
 export const scheduledProblemIdParamsSchema = z.object({ scheduledProblemId: z.uuid() });
 
-export type ListScheduledProblemsQuery = z.infer<typeof listScheduledProblemsQuerySchema>;
 export type ScheduleProblemsInput = z.infer<typeof scheduleProblemsSchema>;
 export type UpdateScheduledProblemInput = z.infer<typeof updateScheduledProblemSchema>;
 export type ScheduledProblemIdParams = z.infer<typeof scheduledProblemIdParamsSchema>;

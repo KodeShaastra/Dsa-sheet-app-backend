@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "difficulty" AS ENUM ('EASY', 'MEDIUM', 'HARD');
 
@@ -117,7 +120,7 @@ CREATE INDEX "scheduled_problems_user_id_scheduled_for_idx" ON "scheduled_proble
 CREATE INDEX "scheduled_problems_problem_id_idx" ON "scheduled_problems"("problem_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "scheduled_problems_user_id_problem_id_scheduled_for_key" ON "scheduled_problems"("user_id", "problem_id", "scheduled_for");
+CREATE UNIQUE INDEX "scheduled_problems_user_id_problem_id_key" ON "scheduled_problems"("user_id", "problem_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "refresh_tokens_token_hash_key" ON "refresh_tokens"("token_hash");
@@ -148,6 +151,7 @@ ALTER TABLE "scheduled_problems" ADD CONSTRAINT "scheduled_problems_problem_id_f
 
 -- AddForeignKey
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 
 -- Emails are always stored lowercase (Prisma can't express CHECK constraints, so it's added by hand).
 ALTER TABLE "users" ADD CONSTRAINT "users_email_lowercase" CHECK ("email" = LOWER("email"));

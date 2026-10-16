@@ -15,7 +15,10 @@ export function toDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Number of days from `from` to `to`, counting both ends. Same day → 1. */
-export function daysInclusive(from: string, to: string): number {
-  return Math.round((toDbDate(to).getTime() - toDbDate(from).getTime()) / MS_PER_DAY) + 1;
+/**
+ * The earliest date that is "today" somewhere in the world (UTC-12 is a day behind UTC).
+ * The server doesn't know the user's time zone, so "not in the past" means "not before this".
+ */
+export function earliestToday(now = new Date()): string {
+  return toDateString(new Date(now.getTime() - MS_PER_DAY));
 }

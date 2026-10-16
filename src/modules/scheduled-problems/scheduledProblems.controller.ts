@@ -1,17 +1,13 @@
 import type { Request, Response } from 'express';
 import type {
   ScheduleProblemsInput,
-  ListScheduledProblemsQuery,
   ScheduledProblemIdParams,
   UpdateScheduledProblemInput,
 } from './scheduledProblems.schema.js';
 import * as scheduledProblemsService from './scheduledProblems.service.js';
 
 export async function listScheduledProblems(req: Request, res: Response) {
-  const scheduledProblems = await scheduledProblemsService.listScheduledProblems(
-    req.user!.id,
-    req.query as unknown as ListScheduledProblemsQuery,
-  );
+  const scheduledProblems = await scheduledProblemsService.listScheduledProblems(req.user!.id);
   res.json({ scheduledProblems });
 }
 

@@ -4,7 +4,6 @@ import { validate } from '../../middleware/validate.js';
 import * as controller from './scheduledProblems.controller.js';
 import {
   scheduleProblemsSchema,
-  listScheduledProblemsQuerySchema,
   scheduledProblemIdParamsSchema,
   updateScheduledProblemSchema,
 } from './scheduledProblems.schema.js';
@@ -13,11 +12,7 @@ export const scheduledProblemsRouter = Router();
 
 scheduledProblemsRouter.use(requireAuth);
 
-scheduledProblemsRouter.get(
-  '/',
-  validate('query', listScheduledProblemsQuerySchema),
-  controller.listScheduledProblems,
-);
+scheduledProblemsRouter.get('/', controller.listScheduledProblems);
 scheduledProblemsRouter.post(
   '/',
   validate('body', scheduleProblemsSchema),
