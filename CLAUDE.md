@@ -62,6 +62,7 @@ ACCESS_TOKEN_TTL=15m
 REFRESH_TOKEN_TTL_DAYS=7
 COOKIE_NAME=dsa_token
 REFRESH_COOKIE_NAME=dsa_refresh
+TRUST_PROXY_HOPS=1          # proxies in front of Express: 1 = Nginx, 2 = CloudFront → Nginx (production)
 ```
 
 Never commit `.env`. Never log secrets.
@@ -183,7 +184,8 @@ db:studio      prisma studio
 - Prisma known errors map to clean errors (P2002 → 409 CONFLICT, P2025 → 404 NOT_FOUND).
 - Use transactions where two writes must succeed together.
 - Middleware order: helmet → json (limit 100kb) → cookie-parser → logger → routes → notFound → error.
-- `app.set('trust proxy', 1)` (we run behind Nginx/CloudFront; needed for rate limit IPs and secure cookies).
+- `app.set('trust proxy', TRUST_PROXY_HOPS)` — 2 in production (CloudFront → Nginx), so rate limits see each visitor's
+  real IP, not CloudFront's. Port 80 on the server must only accept CloudFront, or the header could be faked.
 - Small functions, clear names, no commented-out code.
 
 ## Tests (minimum)

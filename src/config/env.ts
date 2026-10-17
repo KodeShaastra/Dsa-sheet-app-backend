@@ -26,6 +26,8 @@ const envSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
     COOKIE_NAME: cookieName.default('dsa_token'),
     REFRESH_COOKIE_NAME: cookieName.default('dsa_refresh'),
+    // How many proxies sit in front of Express: 1 = Nginx, 2 = CloudFront → Nginx. Used for real client IPs.
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
   })
   .refine((e) => e.COOKIE_NAME !== e.REFRESH_COOKIE_NAME, {
     path: ['REFRESH_COOKIE_NAME'],

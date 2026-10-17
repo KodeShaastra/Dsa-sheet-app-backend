@@ -78,6 +78,7 @@ npm run dev                   # → http://localhost:4000/api/health
 | `REFRESH_TOKEN_TTL_DAYS` | `7`                                     | How long a refresh token lasts, in days           |
 | `COOKIE_NAME`            | `dsa_token`                             | Name of the access token cookie                   |
 | `REFRESH_COOKIE_NAME`    | `dsa_refresh`                           | Name of the refresh token cookie                  |
+| `TRUST_PROXY_HOPS`       | `1`                                     | Proxies in front: 1 = Nginx, 2 = CloudFront+Nginx |
 
 The app checks these on start and **stops with a clear message** if one is missing or wrong.
 
@@ -254,7 +255,7 @@ curl -b jar localhost:4000/api/solved-problems                 # see your progre
 
 ## Tests
 
-`npm test` runs **82 tests** in 9 files against the real `dsa_sheet_test` database
+`npm test` runs **83 tests** in 9 files against the real `dsa_sheet_test` database
 (its tables are created automatically on each run).
 
 **Safety guard:** tests empty every table, so they refuse to start unless `.env.test` exists and its
@@ -274,4 +275,5 @@ database name ends in `_test` (`tests/test-env.ts`). Your real database can't be
 
 ## More
 
+- **`deploy/DEPLOY.md`**: how to put the app online (AWS EC2 + Nginx + CloudFront), with the setup and update scripts.
 - **`CLAUDE.md`**: the full rules for working on this code (naming, code rules, migrations, definition of done).

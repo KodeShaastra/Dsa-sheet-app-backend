@@ -199,4 +199,19 @@ describe('rate limits (5 requests/min per IP)', () => {
       .send({ ...user, email: 'user6@example.com' });
     expect(blocked.status).toBe(429);
   });
+
+  it('behind CloudFront → Nginx (2 hops), each visitor gets their own limit', async () => {
+    const limited = createApp({ rateLimit: true, trustProxyHops: 2 });
+    // CloudFront adds the visitor's IP, Nginx adds CloudFront's: "visitor, cloudfront".
+    const from = (visitor: string) =>
+      request(limited)
+        .post('/api/auth/login')
+        .set('X-Forwarded-For', `${visitor}, 13.32.0.1`)
+        .send(login);
+
+    for (let i = 0; i < 5; i++) expect((await from('203.0.113.1')).status).not.toBe(429);
+    expect((await from('203.0.113.1')).status).toBe(429);
+    // Same CloudFront edge, different visitor: not blocked.
+    expect((await from('203.0.113.2')).status).not.toBe(429);
+  });
 });

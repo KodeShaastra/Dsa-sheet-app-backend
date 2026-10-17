@@ -3,7 +3,7 @@ import express from 'express';
 import { rateLimit as rateLimiter } from 'express-rate-limit';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
-import { isTest } from './config/env.js';
+import { env, isTest } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
@@ -15,6 +15,8 @@ import { AppError } from './utils/AppError.js';
 interface AppOptions {
   /** Turn rate limits on or off. Off by default in tests. */
   rateLimit?: boolean;
+  /** Proxies in front of Express (see TRUST_PROXY_HOPS). */
+  trustProxyHops?: number;
 }
 
 /** 300 requests per minute per IP, across the whole API. */
@@ -31,12 +33,15 @@ function globalRateLimit() {
 }
 
 /** Builds the Express app without starting it, so tests can use it directly. */
-export function createApp({ rateLimit = !isTest }: AppOptions = {}) {
+export function createApp({
+  rateLimit = !isTest,
+  trustProxyHops = env.TRUST_PROXY_HOPS,
+}: AppOptions = {}) {
   const app = express();
 
   app.disable('x-powered-by');
-  // We run behind Nginx/CloudFront: needed for real client IPs (rate limits) and secure cookies.
-  app.set('trust proxy', 1);
+  // We run behind Nginx (and CloudFront in production): needed for real client IPs (rate limits).
+  app.set('trust proxy', trustProxyHops);
 
   app.use(helmet());
   app.use(express.json({ limit: '100kb' }));
