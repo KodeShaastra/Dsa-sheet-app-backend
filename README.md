@@ -254,7 +254,7 @@ curl -b jar localhost:4000/api/solved-problems                 # see your progre
 
 ## Tests
 
-`npm test` runs **83 tests** in 9 files against the real `dsa_sheet_test` database
+`npm test` runs **82 tests** in 9 files against the real `dsa_sheet_test` database
 (its tables are created automatically on each run).
 
 **Safety guard:** tests empty every table, so they refuse to start unless `.env.test` exists and its
