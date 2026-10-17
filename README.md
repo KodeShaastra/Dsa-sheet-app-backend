@@ -7,6 +7,9 @@ they've solved, and schedule problems on a calendar.
 This repo is **only the API**. The frontend (Next.js) is a separate repo. It calls this API with
 relative `/api/...` URLs, so in the browser both run on the same site, and the login cookie just works.
 
+**Live:** https://d3n7j7klp7qcc3.cloudfront.net · **Design docs:** [System design (HLD)](docs/system-design.md) ·
+[Database schema (LLD)](docs/database-schema.md)
+
 ```mermaid
 flowchart LR
   Browser -->|"/api/*"| Proxy["Next.js dev rewrite<br/>or Nginx in production"]
@@ -275,5 +278,7 @@ database name ends in `_test` (`tests/test-env.ts`). Your real database can't be
 
 ## More
 
+- **[`docs/system-design.md`](docs/system-design.md)**: architecture, request flow, login, progress tracking, scaling to 50k users, trade-offs.
+- **[`docs/database-schema.md`](docs/database-schema.md)**: every table, relationships, indexing strategy, size estimates.
 - **`deploy/DEPLOY.md`**: how to put the app online (AWS EC2 + Nginx + CloudFront), with the setup and update scripts.
 - **`CLAUDE.md`**: the full rules for working on this code (naming, code rules, migrations, definition of done).
