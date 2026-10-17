@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../src/lib/prisma.js';
-import { chapters, leetcodeUrl } from './seed-data.js';
+import { articles, chapters, leetcodeUrl, videos, youtubeUrl } from './seed-data.js';
 
 const DEMO_USER = { email: 'demo@dsasheet.dev', name: 'Demo User', password: 'Demo@1234' };
 
@@ -24,8 +24,16 @@ async function seedSheet() {
       });
 
       for (const [problemIndex, [title, slug, difficulty]] of t.problems.entries()) {
-        const data = { difficulty, practiceUrl: leetcodeUrl(slug), displayOrder: problemIndex + 1 };
-        // youtubeUrl / articleUrl are not touched on update, so links added later are kept.
+        const videoId = videos[slug];
+        const articleUrl = articles[slug];
+        const data = {
+          difficulty,
+          practiceUrl: leetcodeUrl(slug),
+          displayOrder: problemIndex + 1,
+          ...(videoId && { youtubeUrl: youtubeUrl(videoId) }),
+          ...(articleUrl && { articleUrl }),
+        };
+        // Links not listed in seed-data.ts are not touched on update, so ones added by hand are kept.
         await prisma.problem.upsert({
           where: { topicId_title: { topicId: topic.id, title } },
           update: data,

@@ -1,6 +1,6 @@
 // Sheet content for prisma/seed.ts.
 // Each problem is [title, leetcodeSlug, difficulty]. The practice URL is built from the slug.
-// YouTube and article links are left out on purpose: only add ones you have checked.
+// YouTube and article links: only add ones you have checked (see `videos` and `articles` below).
 
 export type SeedDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type SeedProblem = [title: string, slug: string, difficulty: SeedDifficulty];
@@ -12,6 +12,48 @@ export interface SeedChapter {
 }
 
 export const leetcodeUrl = (slug: string) => `https://leetcode.com/problems/${slug}/`;
+export const youtubeUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
+
+/**
+ * Apna College videos for some Arrays problems: LeetCode slug → YouTube video id.
+ * Each one was checked (2026-10-17) with YouTube's oEmbed lookup: the video exists and the channel is
+ * "Apna College". Problems without a clear video are left out, so the sheet shows "No video yet".
+ */
+export const videos: Record<string, string> = {
+  'two-sum': '0Fxc_jKj2vo',
+  'best-time-to-buy-and-sell-stock': 'WBzZCm46mFo',
+  'majority-element': '_xqIp2rj8bo',
+  'product-of-array-except-self': 'TW2m8m_FNJE',
+  'sort-colors': 'J48aGjfjYTI',
+  '3sum': 'K-RsltkN63w',
+  'container-with-most-water': 'EbkMABpP52U',
+  'trapping-rain-water': 'BsPbCLj4_Mw',
+  'maximum-subarray': '9IZYqostl2M',
+  'subarray-sum-equals-k': 'KDH4mhFVvHw',
+};
+
+/**
+ * Free articles for the Arrays problems: LeetCode slug → URL. Checked 2026-10-17:
+ * LeetCode editorials only where LeetCode's API says the editorial is free (not premium);
+ * GeeksforGeeks pages loaded (200) and their title matches the problem. Contains Duplicate has none.
+ */
+export const articles: Record<string, string> = {
+  'two-sum': 'https://leetcode.com/problems/two-sum/editorial/',
+  'move-zeroes': 'https://leetcode.com/problems/move-zeroes/editorial/',
+  'subarray-sum-equals-k': 'https://leetcode.com/problems/subarray-sum-equals-k/editorial/',
+  'merge-intervals': 'https://leetcode.com/problems/merge-intervals/editorial/',
+  'best-time-to-buy-and-sell-stock':
+    'https://www.geeksforgeeks.org/dsa/best-time-to-buy-and-sell-stock/',
+  'majority-element': 'https://www.geeksforgeeks.org/dsa/majority-element/',
+  'product-of-array-except-self': 'https://www.geeksforgeeks.org/dsa/a-product-array-puzzle/',
+  'sort-colors': 'https://www.geeksforgeeks.org/dsa/sort-an-array-of-0s-1s-and-2s/',
+  '3sum': 'https://www.geeksforgeeks.org/dsa/find-triplets-array-whose-sum-equal-zero/',
+  'container-with-most-water': 'https://www.geeksforgeeks.org/dsa/container-with-most-water/',
+  'trapping-rain-water': 'https://www.geeksforgeeks.org/dsa/trapping-rain-water/',
+  'maximum-subarray': 'https://www.geeksforgeeks.org/dsa/largest-sum-contiguous-subarray/',
+  'longest-consecutive-sequence':
+    'https://www.geeksforgeeks.org/dsa/longest-consecutive-subsequence/',
+};
 
 export const chapters: SeedChapter[] = [
   {
