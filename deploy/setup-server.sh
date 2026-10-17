@@ -89,6 +89,10 @@ npm run build
 step "7. Start both apps with PM2, and start them again after a reboot"
 cd "$BACKEND"
 pm2 startOrReload deploy/ecosystem.config.cjs
+# App logs grow forever by default: start a new file at 10 MB and keep the last 5 (~100 MB at most).
+pm2 describe pm2-logrotate >/dev/null 2>&1 || pm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 10M >/dev/null
+pm2 set pm2-logrotate:retain 5 >/dev/null
 pm2 save
 sudo env PATH="$PATH" "$(command -v pm2)" startup systemd -u "$USER" --hp "$HOME" >/dev/null
 

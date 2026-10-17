@@ -32,6 +32,8 @@ other regions return "explicit deny in a service control policy"). Use the regio
 | `nginx.conf`           | `/api/*` → Express, everything else → Next.js                   |
 | `ecosystem.config.cjs` | PM2: keeps both apps running and restarts them after a reboot   |
 
+App logs are rotated by `pm2-logrotate` (10 MB per file, last 5 kept). Nginx and system logs are rotated by Ubuntu.
+
 ## 1. Security group (the server's firewall)
 
 EC2 → Security Groups → Create, in your region (here **ap-southeast-2, Sydney**), name `dsa-sheet`:
@@ -98,6 +100,8 @@ ssh -i dsa-sheet.pem ubuntu@<ELASTIC_IP> 'bash ~/apps/Dsa-sheet-app-backend/depl
 | `pm2 status`                            | Are both apps running?          |
 | `pm2 logs dsa-backend` / `dsa-frontend` | Live logs                       |
 | `pm2 restart all`                       | Restart both apps               |
+| `pm2 flush`                             | Empty the app logs              |
+| `df -h /` / `free -h`                   | Free disk space / memory        |
 | `sudo tail -f /var/log/nginx/error.log` | Nginx errors                    |
 | `curl http://127.0.0.1/api/health`      | Backend reachable through Nginx |
 
